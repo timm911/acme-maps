@@ -19,9 +19,11 @@ const Login: React.FC = () => {
   const handleSubmit = async (data: LoginFormInputs) => {
     try {
       const response = await login(data);
-      localStorage.setItem('token', response.data.accessToken);
-      alert.showAlert("Successfully logged in!", "success", "success");
-      navigate('/admin');
+      if(response?.data) {
+        localStorage.setItem('token', response.data.accessToken);
+        alert.showAlert("Successfully logged in!", "success", "success");
+        navigate('/admin');
+      }
     } catch (err) {
       setError('Invalid credentials');
     }

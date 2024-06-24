@@ -52,7 +52,11 @@ export const getUsersByDate = async (date: string, callback: Dispatch<SetStateAc
 }
 
 export const login = async (data: LoginFormInputs) => {
-    return await instance.post('/api/admin/login', data);
+    try {
+        return await instance.post('/api/admin/login', data);
+    } catch (e) {
+        console.log(e);
+    }
 }
 
 export const fetchTunnels = async (callback: Dispatch<SetStateAction<Tunnel[]>>) => {
