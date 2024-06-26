@@ -27,7 +27,6 @@ export default function App() {
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
-    if (tunnels.length < 1 || zones.length < 1) return;
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
