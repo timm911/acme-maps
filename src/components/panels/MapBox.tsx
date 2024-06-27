@@ -13,8 +13,8 @@ export default function App() {
   const [lng, setLng] = useState(-70.9);
   const [lat, setLat] = useState(42.35);
   const [zoom, setZoom] = useState(9);
-  const [tunnels, setTunnels] = useState<Tunnel[]>([]);
-  const [zones, setZones] = useState<Zone[]>([]);
+  const [tunnels, setTunnels] = useState<Tunnel[] | undefined>(undefined);
+  const [zones, setZones] = useState<Zone[] | undefined>(undefined);
 
   const fetchData = async () => {
     fetchTunnels(setTunnels);
@@ -27,7 +27,8 @@ export default function App() {
 
   useEffect(() => {
     if (map.current) return; // initialize map only once
-    if (tunnels.length < 1 || zones.length < 1) return;
+    // console.log(tunnels, zones);
+    if (!tunnels || !zones) return;
     
     map.current = new mapboxgl.Map({
       container: mapContainer.current,
@@ -50,68 +51,73 @@ export default function App() {
       map.current.setLight({ anchor: 'map', intensity: 0.4 });
 
       // Fetch and add tunnels
-      for (const tunnel of tunnels) {
-        if (tunnel.visible) {          
-          const route = await getRoute(
-            [tunnel.startLng, tunnel.startLat],
-            [tunnel.endLng, tunnel.endLat]
-          );
+      if (tunnels.length > 0) {
 
-          map.current.addLayer({
-            id: tunnel.id,
-            type: 'line',
-            source: {
-              type: 'geojson',
-              data: {
-                type: 'Feature',
-                geometry: {
-                  type: 'LineString',
-                  coordinates: route
+        for (const tunnel of tunnels) {
+          if (tunnel.visible) {          
+            const route = await getRoute(
+              [tunnel.startLng, tunnel.startLat],
+              [tunnel.endLng, tunnel.endLat]
+            );
+  
+            map.current.addLayer({
+              id: tunnel.id,
+              type: 'line',
+              source: {
+                type: 'geojson',
+                data: {
+                  type: 'Feature',
+                  geometry: {
+                    type: 'LineString',
+                    coordinates: route
+                  }
                 }
+              },
+              layout: {
+                'line-join': 'round',
+                'line-cap': 'round'
+              },
+              paint: {
+                'line-color': tunnel.color,
+                'line-opacity': tunnel.opacity,
+                'line-width': 5
               }
-            },
-            layout: {
-              'line-join': 'round',
-              'line-cap': 'round'
-            },
-            paint: {
-              'line-color': tunnel.color,
-              'line-opacity': tunnel.opacity,
-              'line-width': 5
-            }
-          });
+            });
+          }
         }
       }
 
       // Add 3D zones
-      
-      zones.forEach(zone => {
-        if (zone.visible) {
-          const radiusInMeters = parseFloat(zone.radius) * 1609.34;
+      if (zones.length > 0) {
 
-          map.current.addSource(zone.id, {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              geometry: {
-                type: 'Polygon',
-                coordinates: [createCircle([parseFloat(zone.centerLng), parseFloat(zone.centerLat)], radiusInMeters)]
+        zones.forEach(zone => {
+          if (zone.visible) {
+            const radiusInMeters = parseFloat(zone.radius) * 1609.34;
+  
+            map.current.addSource(zone.id, {
+              type: 'geojson',
+              data: {
+                type: 'Feature',
+                geometry: {
+                  type: 'Polygon',
+                  coordinates: [createCircle([parseFloat(zone.centerLng), parseFloat(zone.centerLat)], radiusInMeters)]
+                }
               }
-            }
-          });
-
-          map.current.addLayer({
-            id: zone.id,
-            type: 'fill-extrusion',
-            source: zone.id,
-            paint: {
-              'fill-extrusion-color': zone.color,
-              'fill-extrusion-height': 50,
-              'fill-extrusion-opacity': 0.5
-            }
-          });
-        }
-      });
+            });
+  
+            map.current.addLayer({
+              id: zone.id,
+              type: 'fill-extrusion',
+              source: zone.id,
+              paint: {
+                'fill-extrusion-color': zone.color,
+                'fill-extrusion-height': 50,
+                'fill-extrusion-opacity': 0.5
+              }
+            });
+          }
+        });
+      }
     });
 
     map.current.on('move', () => {
@@ -119,7 +125,7 @@ export default function App() {
       setLat(map.current.getCenter().lat.toFixed(4));
       setZoom(map.current.getZoom().toFixed(2));
     });
-  }, [tunnels, zones]);
+  }, [tunnels, zones, map.current]);
 
   return (
     <div className='flex flex-col h-full'>
